@@ -1,0 +1,56 @@
+name: Verify PocketOption AI Indicator
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r Requirements.txt
+
+      - name: Check configuration
+        run: |
+          python -c "from config import validate_configuration; validate_configuration(); print('CONFIGURATION: PASSED')"
+
+      - name: Check market data
+        run: |
+          python -c "from market import test_market_data; result=test_market_data('EURUSD=X'); print('MARKET DATA: PASSED' if result else 'MARKET DATA: FAILED'); raise SystemExit(0 if result else 1)"
+
+      - name: Check indicators
+        run: |
+          python -c "from market import get_market_data; from indicators import validate_indicators; data=get_market_data('EURUSD=X'); result=validate_indicators(data); print('INDICATORS: PASSED' if result else 'INDICATORS: FAILED'); raise SystemExit(0 if result else 1)"
+
+      - name: Check strategy
+        run: |
+          python -c "from market import get_market_data; from strategy import test_strategy, calculate_signal, format_signal; symbol='EURUSD=X'; data=get_market_data(symbol); result=test_strategy(data, symbol); print('STRATEGY: PASSED' if result else 'STRATEGY: FAILED'); print(format_signal(calculate_signal(data, symbol))); raise SystemExit(0 if result else 1)"
+
+      - name: Run main application
+        run: |
+          python main.py
+
+      - name: Verification complete
+        run: |
+          echo "=========================================="
+          echo "POCKETOPTION AI INDICATOR"
+          echo "FULL VERIFICATION: PASSED"
+          echo "=========================================="
