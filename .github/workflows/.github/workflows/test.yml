@@ -1,0 +1,62 @@
+name: Test PocketOption AI Indicator
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Upgrade pip
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Test configuration
+        run: |
+          python -c "from config import validate_configuration; validate_configuration(); print('Configuration test: PASSED')"
+
+      - name: Test market data engine
+        run: |
+          python -c "from market import test_market_data; print('Market data test:', 'PASSED' if test_market_data('EURUSD=X') else 'FAILED')"
+
+      - name: Test indicator engine
+        run: |
+          python -c "from market import get_market_data; from indicators import validate_indicators; data = get_market_data('EURUSD=X'); print('Indicator test:', 'PASSED' if validate_indicators(data) else 'FAILED')"
+
+      - name: Test strategy engine
+        run: |
+          from market import get_market_data
+          from strategy import test_strategy, calculate_signal, format_signal
+
+          symbol = "EURUSD=X"
+          data = get_market_data(symbol)
+
+          if not test_strategy(data, symbol):
+              raise SystemExit("Strategy test: FAILED")
+
+          result = calculate_signal(data, symbol)
+
+          print(format_signal(result))
+          print()
+          print("Strategy test: PASSED")
+
+      - name: Run complete application
+        run: |
+          python main.py
